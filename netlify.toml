@@ -1,0 +1,5 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  # Stretch (Sunday 11:00): Groq calls go through a function so the key never ships to the browser.
+  # functions = "netlify/functions"
