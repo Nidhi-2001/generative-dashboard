@@ -2,6 +2,7 @@ import { resolveMetric } from '../data/resolve'
 import type { StatBlock } from '../schema'
 import { Card } from './Card'
 import { currency, percent } from './format'
+import { CountUp } from './CountUp'
 
 export function StatCard({ block }: { block: StatBlock }) {
   const { value, format, previous } = resolveMetric(block.metric)
@@ -15,8 +16,10 @@ export function StatCard({ block }: { block: StatBlock }) {
   }
 
   return (
-    <Card title={block.title} span={block.span}>
-      <p className="text-3xl font-semibold tracking-tight text-slate-50 tabular-nums">{show(value)}</p>
+    <Card title={block.title}>
+      <p className="text-3xl font-semibold tracking-tight text-slate-50 tabular-nums">
+        <CountUp value={value} format={show} />
+      </p>
       {delta && <p className="mt-1 text-xs text-slate-400">{delta}</p>}
     </Card>
   )

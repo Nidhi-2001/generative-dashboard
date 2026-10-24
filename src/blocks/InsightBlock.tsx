@@ -10,7 +10,7 @@ const TONE = {
 export function InsightBlock({ block }: { block: InsightBlockType }) {
   const tone = TONE[block.tone]
   return (
-    <Card title={block.title} span={block.span} className={tone.card}>
+    <Card title={block.title} className={tone.card}>
       <p className="flex gap-3 text-base leading-relaxed text-slate-100">
         <span className={`mt-2.5 h-2 w-2 shrink-0 rounded-full ${tone.dot}`} aria-hidden />
         {block.text}

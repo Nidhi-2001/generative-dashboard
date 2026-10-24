@@ -1,7 +1,10 @@
+import { motion } from 'framer-motion'
+import { useContext } from 'react'
 import { resolveSource } from '../data/resolve'
 import type { TableBlock as TableBlockType } from '../schema'
 import { Card, Empty } from './Card'
 import { currency, shortDate, titleCase } from './format'
+import { BlockDelay, EASE_OUT } from './motion'
 import { colorFor } from './theme'
 
 export function TableBlock({ block }: { block: TableBlockType }) {
@@ -9,6 +12,7 @@ export function TableBlock({ block }: { block: TableBlockType }) {
   const ranked = block.source.kind === 'topExpenses'
   const columns = rows.length ? Object.keys(rows[0]) : []
   const isNumeric = (col: string) => series.includes(col)
+  const delay = useContext(BlockDelay)
 
   const cell = (col: string, value: string | number) => {
     if (isNumeric(col)) return currency(Number(value))
@@ -24,7 +28,7 @@ export function TableBlock({ block }: { block: TableBlockType }) {
   }
 
   return (
-    <Card title={block.title} span={block.span}>
+    <Card title={block.title}>
       {rows.length === 0 ? (
         <Empty />
       ) : (
@@ -42,7 +46,13 @@ export function TableBlock({ block }: { block: TableBlockType }) {
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} className="border-b border-slate-800/60 last:border-0">
+                <motion.tr
+                  key={i}
+                  className="border-b border-slate-800/60 last:border-0"
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.35, delay: delay + 0.2 + i * 0.04, ease: EASE_OUT }}
+                >
                   {ranked && <td className="py-2.5 text-slate-500 tabular-nums">{i + 1}</td>}
                   {columns.map((col) => (
                     <td
@@ -52,7 +62,7 @@ export function TableBlock({ block }: { block: TableBlockType }) {
                       {cell(col, row[col])}
                     </td>
                   ))}
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

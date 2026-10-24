@@ -1,6 +1,8 @@
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { useState } from 'react'
 import { answer } from './answerEngine'
 import { BlockRenderer } from './BlockRenderer'
+import { EASE_OUT } from './blocks/motion'
 import { ShaderBackground } from './ShaderBackground'
 
 const DEMO_QUESTIONS = [
@@ -15,16 +17,18 @@ const DEMO_QUESTIONS = [
 
 export default function App() {
   const [draft, setDraft] = useState('')
-  const [current, setCurrent] = useState(() => answer(DEMO_QUESTIONS[0]))
+  // `id` re-keys the dashboard so asking the same question again rebuilds it too
+  const [{ id, current }, setState] = useState(() => ({ id: 0, current: answer(DEMO_QUESTIONS[0]) }))
 
   const ask = (question: string) => {
     if (!question.trim()) return
-    setCurrent(answer(question.trim()))
+    setState((s) => ({ id: s.id + 1, current: answer(question.trim()) }))
     setDraft('')
   }
 
   return (
-    <>
+    // "user": with prefers-reduced-motion, keep fades but drop movement
+    <MotionConfig reducedMotion="user">
       <header className="relative isolate overflow-hidden">
         <ShaderBackground pulseKey={current} className="absolute inset-0 -z-10" />
         <div className="mx-auto max-w-6xl px-4 pt-16 pb-12">
@@ -46,23 +50,49 @@ export default function App() {
             <button className="rounded-xl bg-indigo-500 px-5 font-medium text-white hover:bg-indigo-400">Ask</button>
           </form>
           <div className="mt-3 flex flex-wrap gap-2">
-            {DEMO_QUESTIONS.map((q) => (
-              <button
-                key={q}
-                onClick={() => ask(q)}
-                className="rounded-full border border-slate-700/70 bg-slate-950/40 px-3 py-1 text-xs text-slate-300 backdrop-blur-sm hover:border-slate-500 hover:text-slate-100"
-              >
-                {q}
-              </button>
-            ))}
+            {DEMO_QUESTIONS.map((q) => {
+              const active = q === current.question
+              return (
+                <button
+                  key={q}
+                  onClick={() => ask(q)}
+                  aria-pressed={active}
+                  className={`relative rounded-full border px-3 py-1 text-xs backdrop-blur-sm transition-colors ${
+                    active
+                      ? 'border-indigo-400/60 text-white'
+                      : 'border-slate-700/70 bg-slate-950/40 text-slate-300 hover:border-slate-500 hover:text-slate-100'
+                  }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="active-chip"
+                      className="absolute inset-0 -z-10 rounded-full bg-indigo-500/25"
+                      transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                    />
+                  )}
+                  {q}
+                </button>
+              )
+            })}
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pb-10">
-        <p className="mb-1 text-sm text-slate-500">{current.question}</p>
-        <h2 className="mb-6 text-xl font-medium text-slate-100">{current.summary}</h2>
-        <BlockRenderer blocks={current.blocks} />
+      <main className="relative mx-auto max-w-6xl px-4 pb-10">
+        {/* popLayout: the old dashboard fades out of flow while the new one builds in place */}
+        <AnimatePresence mode="popLayout">
+          <motion.section key={id} exit={{ opacity: 0, transition: { duration: 0.15 } }}>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: EASE_OUT }}
+            >
+              <p className="mb-1 text-sm text-slate-500">{current.question}</p>
+              <h2 className="mb-6 text-xl font-medium text-slate-100">{current.summary}</h2>
+            </motion.div>
+            <BlockRenderer blocks={current.blocks} />
+          </motion.section>
+        </AnimatePresence>
 
         <details className="mt-8 text-xs text-slate-500">
           <summary className="cursor-pointer select-none">View the JSON that built this dashboard</summary>
@@ -71,6 +101,6 @@ export default function App() {
           </pre>
         </details>
       </main>
-    </>
+    </MotionConfig>
   )
 }

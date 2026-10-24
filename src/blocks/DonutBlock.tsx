@@ -3,29 +3,41 @@ import { resolveSource } from '../data/resolve'
 import type { DonutBlock as DonutBlockType } from '../schema'
 import { Card, Empty } from './Card'
 import { currency, titleCase } from './format'
+import { CountUp } from './CountUp'
+import { useChartAnimation } from './motion'
 import { colorFor, TOOLTIP_STYLE } from './theme'
 
 export function DonutBlock({ block }: { block: DonutBlockType }) {
   const { rows, x, series } = resolveSource(block.source)
   // A donut shows one series: parts of a whole.
   const key = series[0]
+  const animation = useChartAnimation()
   const total = rows.reduce((sum, row) => sum + Number(row[key]), 0)
 
   if (!rows.length || total === 0) {
     return (
-      <Card title={block.title} span={block.span}>
+      <Card title={block.title}>
         <Empty />
       </Card>
     )
   }
 
   return (
-    <Card title={block.title} span={block.span}>
+    <Card title={block.title}>
       <div className="flex flex-col items-center gap-6 sm:flex-row">
         <div className="relative h-56 w-56 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={rows} dataKey={key} nameKey={x} innerRadius="68%" outerRadius="100%" paddingAngle={2} stroke="none">
+              <Pie
+                data={rows}
+                dataKey={key}
+                nameKey={x}
+                innerRadius="68%"
+                outerRadius="100%"
+                paddingAngle={2}
+                stroke="none"
+                {...animation}
+              >
                 {rows.map((row) => (
                   <Cell key={String(row[x])} fill={colorFor(String(row[x]))} />
                 ))}
@@ -35,7 +47,9 @@ export function DonutBlock({ block }: { block: DonutBlockType }) {
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 grid place-content-center text-center">
             <span className="text-xs text-slate-500">Total</span>
-            <span className="text-xl font-semibold text-slate-50 tabular-nums">{currency(total)}</span>
+            <span className="text-xl font-semibold text-slate-50 tabular-nums">
+              <CountUp value={total} format={currency} />
+            </span>
           </div>
         </div>
         <ul className="w-full space-y-2 text-sm">

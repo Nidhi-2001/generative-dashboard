@@ -2,7 +2,7 @@
 
 A generative dashboard: you type a question about your money and the app builds a different dashboard for it at runtime, from a typed JSON schema.
 
-> **Status:** typing a question now builds its dashboard through the rule-based router, and all six block types (`stat`, `bar`, `line`, `donut`, `table`, `insight`) are built, and the header has its WebGL shader. Still to do: the motion and polish pass, and the Groq stretch.
+> **Status:** typing a question now builds its dashboard through the rule-based router, and all six block types (`stat`, `bar`, `line`, `donut`, `table`, `insight`) are built, the header has its WebGL shader, and dashboards animate in as they're built. Still to do: the visual polish pass and the Groq stretch.
 
 ## Run
 
@@ -23,7 +23,8 @@ question ─▶ answerEngine ─▶ Answer (JSON) ─▶ Answer.parse ─▶ Blo
 | File | Role |
 | --- | --- |
 | `src/schema.ts` | **The product.** Zod schemas for `Answer` and the six block types. The TS types, runtime validation and LLM JSON Schema (`answerJsonSchema()`) all come from here. |
-| `src/BlockRenderer.tsx` | Turns blocks into components. To add a block type, add one case here; the `never` check fails the build until you do. |
+| `src/BlockRenderer.tsx` | Turns blocks into components and places them on the grid. To add a block type, add one case here; the `never` check fails the build until you do. |
+| `src/blocks/motion.ts` | The assembly timing. Blocks arrive in reading order, each chart starts drawing as its card lands, and stat numbers count up (`CountUp.tsx`). The motion shows that the dashboard was built for your question rather than fetched. |
 | `src/answerEngine.ts` | Takes a question and returns an `Answer`, validated with `Answer.parse`. This is where the Groq path will go. |
 | `src/router.ts` | The rule-based router. It parses the categories, month and dollar amount a question mentions, then the first matching intent builds the layout. Summaries and insight text are computed from the data. Anything it doesn't recognize gets the overview, not an error. |
 | `src/data/generate.ts` | Six months of seeded synthetic transactions (Apr–Sep 2026), the same on every run. |
