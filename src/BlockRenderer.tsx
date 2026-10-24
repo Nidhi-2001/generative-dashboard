@@ -1,9 +1,11 @@
 // Maps an Answer's block array to components. Adding a block type = add it to
 // schema.ts, then add one case here; the `never` check fails the build until you do.
 import { BarChartBlock } from './blocks/BarChartBlock'
+import { DonutBlock } from './blocks/DonutBlock'
+import { InsightBlock } from './blocks/InsightBlock'
 import { LineChartBlock } from './blocks/LineChartBlock'
-import { PendingBlock } from './blocks/PendingBlock'
 import { StatCard } from './blocks/StatCard'
+import { TableBlock } from './blocks/TableBlock'
 import type { Block } from './schema'
 
 function renderBlock(block: Block) {
@@ -14,10 +16,12 @@ function renderBlock(block: Block) {
       return <BarChartBlock block={block} />
     case 'line':
       return <LineChartBlock block={block} />
-    case 'donut': // TODO Sat 15:00
-    case 'table': // TODO Sat 15:00
-    case 'insight': // TODO Sat 15:00
-      return <PendingBlock block={block} />
+    case 'donut':
+      return <DonutBlock block={block} />
+    case 'table':
+      return <TableBlock block={block} />
+    case 'insight':
+      return <InsightBlock block={block} />
     default: {
       const unhandled: never = block
       return unhandled

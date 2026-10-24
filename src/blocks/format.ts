@@ -6,3 +6,7 @@ export const currency = (n: number) => (Math.abs(n) < 100 ? usdCents : usd).form
 export const compactCurrency = (n: number) => usdCompact.format(n)
 export const percent = (n: number) => `${(n * 100).toFixed(1)}%`
 export const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+export function shortDate(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}

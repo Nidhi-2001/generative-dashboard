@@ -2,7 +2,7 @@
 
 A generative dashboard: you type a question about your money and the app builds a different dashboard for it at runtime, from a typed JSON schema.
 
-> **Status:** typing a question now builds its dashboard through the rule-based router. The `stat`, `bar` and `line` blocks are built. Still to do: the `donut`, `table` and `insight` blocks, the shader header, and the Groq stretch.
+> **Status:** typing a question now builds its dashboard through the rule-based router, and all six block types (`stat`, `bar`, `line`, `donut`, `table`, `insight`) are built. Still to do: the shader header, the motion and polish pass, and the Groq stretch.
 
 ## Run
 

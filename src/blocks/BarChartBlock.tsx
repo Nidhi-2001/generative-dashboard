@@ -1,7 +1,7 @@
 import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { resolveSource } from '../data/resolve'
 import type { BarBlock } from '../schema'
-import { Card } from './Card'
+import { Card, Empty } from './Card'
 import { compactCurrency, currency, titleCase } from './format'
 import { AXIS, colorFor, GRID, TOOLTIP_STYLE } from './theme'
 
@@ -10,6 +10,14 @@ export function BarChartBlock({ block }: { block: BarBlock }) {
   const horizontal = block.orientation === 'horizontal'
   // A single series over categories reads better with each bar in its category's color.
   const colorByRow = series.length === 1 && x === 'category'
+
+  if (!rows.length) {
+    return (
+      <Card title={block.title} span={block.span}>
+        <Empty />
+      </Card>
+    )
+  }
 
   return (
     <Card title={block.title} span={block.span}>
