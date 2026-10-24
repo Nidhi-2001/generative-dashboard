@@ -62,6 +62,10 @@ export function resolveMetric(metric: Metric): MetricValue {
       return { value: agg.monthlySubscriptionCost(), format: 'currency' }
     case 'balance':
       return { value: agg.balance(), format: 'currency' }
+    case 'balanceAfterPurchase':
+      return { value: agg.balance() - metric.amount, format: 'currency' }
+    case 'averageMonthlyNet':
+      return { value: agg.averageMonthlyNet(), format: 'currency' }
   }
 }
 

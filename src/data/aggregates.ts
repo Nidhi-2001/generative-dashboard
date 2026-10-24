@@ -18,6 +18,11 @@ export function monthLabel(month: Month) {
   return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'short' })
 }
 
+export function monthName(month: Month) {
+  const [y, m] = month.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long' })
+}
+
 export const totalSpend = (month?: Month) => sum(transactions.filter(inMonth(month)).filter(isSpend))
 
 export const totalIncome = (month?: Month) =>
@@ -32,6 +37,10 @@ export function savingsRate(month?: Month) {
 }
 
 export const balance = () => Math.round((OPENING_BALANCE + totalIncome() - totalSpend()) * 100) / 100
+
+const round2 = (n: number) => Math.round(n * 100) / 100
+export const averageMonthlySpend = () => round2(totalSpend() / MONTHS.length)
+export const averageMonthlyNet = () => round2((totalIncome() - totalSpend()) / MONTHS.length)
 
 export function categoryTotals(month?: Month) {
   const totals = new Map<SpendCategory, number>()
@@ -75,3 +84,10 @@ export function subscriptions() {
 
 export const monthlySubscriptionCost = () =>
   Math.round(subscriptions().reduce((acc, t) => acc + t.amount, 0) * 100) / 100
+
+/** Subscriptions whose first charge falls after the first month of the window. */
+export function newSubscriptions() {
+  const first = new Map<string, Transaction>()
+  for (const t of transactions) if (t.category === 'subscriptions' && !first.has(t.merchant)) first.set(t.merchant, t)
+  return [...first.values()].filter((t) => !t.date.startsWith(MONTHS[0]))
+}

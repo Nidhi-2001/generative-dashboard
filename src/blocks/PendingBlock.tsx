@@ -6,7 +6,9 @@ export function PendingBlock({ block }: { block: Block }) {
   return (
     <Card title={block.title} span={block.span}>
       <div className="grid h-40 place-items-center rounded-lg border border-dashed border-slate-700 text-sm text-slate-500">
-        <code>{block.type}</code> block — not built yet
+        <span>
+          <code>{block.type}</code> block — not built yet
+        </span>
       </div>
     </Card>
   )

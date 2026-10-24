@@ -38,6 +38,10 @@ export const Metric = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('categorySpend'), category: SpendCategory, month: Month.optional() }),
   z.object({ kind: z.literal('monthlySubscriptionCost') }),
   z.object({ kind: z.literal('balance') }).describe('Current checking balance'),
+  z
+    .object({ kind: z.literal('balanceAfterPurchase'), amount: z.number().positive() })
+    .describe('Current balance minus a hypothetical purchase'),
+  z.object({ kind: z.literal('averageMonthlyNet') }).describe('Average income minus spend per month'),
 ])
 
 const base = {
