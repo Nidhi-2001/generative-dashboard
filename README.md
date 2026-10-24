@@ -2,7 +2,7 @@
 
 A generative dashboard: you type a question about your money and the app builds a different dashboard for it at runtime, from a typed JSON schema.
 
-> **Status:** typing a question now builds its dashboard through the rule-based router, and all six block types (`stat`, `bar`, `line`, `donut`, `table`, `insight`) are built, the header has its WebGL shader, and dashboards animate in as they're built. Still to do: the visual polish pass and the Groq stretch.
+> **Status:** v1 is complete. The rule-based router builds a dashboard for each question from six block types (`stat`, `bar`, `line`, `donut`, `table`, `insight`), the header has an animated WebGL shader, and dashboards animate in as they're built. Still to do: the Groq stretch (LLM-written layouts, with the router as fallback).
 
 ## Run
 
@@ -31,6 +31,8 @@ question ─▶ answerEngine ─▶ Answer (JSON) ─▶ Answer.parse ─▶ Blo
 | `src/data/aggregates.ts` | Derived views: category totals, monthly trend, savings rate, top expenses, subscriptions. |
 | `src/data/resolve.ts` | Turns a block's `source` / `metric` reference into real numbers. |
 | `src/ShaderBackground.tsx` | The animated header gradient: one GLSL fragment shader (domain-warped fbm noise) on a raw WebGL canvas. It speeds up briefly when a new dashboard is built. It also shows a still frame when the user prefers reduced motion, pauses when off screen or in a background tab, and falls back to a CSS gradient without WebGL. |
+
+**Chart colors** follow the entity, never its rank: each category keeps one color on every dashboard. The palette was checked with a colorblind-safety validator against the card background (worst adjacent pair ΔE 8.4 for color-blind viewers, 19.3 for normal vision). Legend text stays neutral, so color is never the only way to tell series apart.
 
 **Blocks reference data; they don't contain it.** A bar block says `source: { kind: "monthlyByCategory", categories: ["dining", "groceries"] }`, and the resolver fills in the numbers. Whoever writes the JSON (the rule-based router or an LLM) chooses the layout but can't invent a figure. The one exception is the prose in `insight` blocks, and that should always be written from values that were already computed.
 

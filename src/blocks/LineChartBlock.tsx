@@ -3,8 +3,9 @@ import { resolveSource } from '../data/resolve'
 import type { LineBlock } from '../schema'
 import { Card } from './Card'
 import { useChartAnimation } from './motion'
-import { compactCurrency, currency, titleCase } from './format'
-import { AXIS, colorFor, GRID, TOOLTIP_STYLE } from './theme'
+import { compactCurrency, currency } from './format'
+import { legendLabel } from './Legend'
+import { AXIS, colorFor, GRID, LEGEND_PROPS, TOOLTIP_STYLE } from './theme'
 
 export function LineChartBlock({ block }: { block: LineBlock }) {
   const { rows, x, series } = resolveSource(block.source)
@@ -18,7 +19,7 @@ export function LineChartBlock({ block }: { block: LineBlock }) {
           <XAxis dataKey={x} {...AXIS} />
           <YAxis tickFormatter={compactCurrency} width={56} {...AXIS} />
           <Tooltip formatter={(v) => currency(Number(v))} {...TOOLTIP_STYLE} />
-          {series.length > 1 && <Legend formatter={titleCase} wrapperStyle={{ fontSize: 12 }} />}
+          {series.length > 1 && <Legend formatter={legendLabel} {...LEGEND_PROPS} />}
           {series.map((key) => (
             <Line
               key={key}
