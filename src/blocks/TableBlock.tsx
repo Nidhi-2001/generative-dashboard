@@ -57,7 +57,7 @@ export function TableBlock({ block }: { block: TableBlockType }) {
                   {columns.map((col) => (
                     <td
                       key={col}
-                      className={`py-2.5 ${isNumeric(col) ? 'text-right text-slate-100 tabular-nums' : 'text-slate-300'}`}
+                      className={`py-2.5 pr-3 last:pr-0 ${col === 'merchant' ? '' : 'whitespace-nowrap'} ${isNumeric(col) ? 'text-right text-slate-100 tabular-nums' : 'text-slate-300'}`}
                     >
                       {cell(col, row[col])}
                     </td>

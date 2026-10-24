@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
-import { useState } from 'react'
-import { answer } from './answerEngine'
+import { useRef, useState } from 'react'
+import { aiAnswer, routerAnswer, type Built } from './answerEngine'
 import { BlockRenderer } from './BlockRenderer'
 import { EASE_OUT } from './blocks/motion'
 import { ShaderBackground } from './ShaderBackground'
@@ -17,13 +17,34 @@ const DEMO_QUESTIONS = [
 
 export default function App() {
   const [draft, setDraft] = useState('')
-  // `id` re-keys the dashboard so asking the same question again rebuilds it too
-  const [{ id, current }, setState] = useState(() => ({ id: 0, current: answer(DEMO_QUESTIONS[0]) }))
+  // `id` re-keys the dashboard so asking the same question again rebuilds it too.
+  // The first dashboard comes from the router, so loading the page costs no tokens.
+  const [{ id, built }, setState] = useState(() => ({ id: 0, built: routerAnswer(DEMO_QUESTIONS[0]) }))
+  const [aiEnabled, setAiEnabled] = useState(true)
+  const [pending, setPending] = useState<string>()
+  const inFlight = useRef<AbortController>(undefined)
+  const current = built.answer
 
-  const ask = (question: string) => {
-    if (!question.trim()) return
-    setState((s) => ({ id: s.id + 1, current: answer(question.trim()) }))
+  const show = (next: Built) => setState((s) => ({ id: s.id + 1, built: next }))
+
+  const ask = async (raw: string) => {
+    const question = raw.trim()
+    if (!question) return
     setDraft('')
+    inFlight.current?.abort() // a newer question wins; a slow older reply must not overwrite it
+    if (!aiEnabled) {
+      setPending(undefined)
+      return show(routerAnswer(question))
+    }
+    const controller = new AbortController()
+    inFlight.current = controller
+    setPending(question)
+    try {
+      show(await aiAnswer(question, controller.signal))
+      setPending(undefined)
+    } catch {
+      // aborted by a newer question, which owns the pending state now
+    }
   }
 
   return (
@@ -52,13 +73,19 @@ export default function App() {
               aria-label="Your question"
               className="min-w-0 flex-1 rounded-xl border border-slate-700/80 bg-slate-950/70 px-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30 focus:outline-none"
             />
-            <button className="rounded-xl bg-indigo-500 px-5 font-medium text-white shadow-lg shadow-indigo-500/20 transition-colors hover:bg-indigo-400">
-              Ask
+            <button className="flex items-center gap-2 rounded-xl bg-indigo-500 px-5 font-medium text-white shadow-lg shadow-indigo-500/20 transition-colors hover:bg-indigo-400">
+              {pending && (
+                <span
+                  className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                  aria-hidden
+                />
+              )}
+              {pending ? 'Building…' : 'Ask'}
             </button>
           </form>
           <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {DEMO_QUESTIONS.map((q) => {
-              const active = q === current.question
+              const active = q === (pending ?? current.question)
               return (
                 <button
                   key={q}
@@ -82,10 +109,28 @@ export default function App() {
               )
             })}
           </div>
+          <label className="mt-4 inline-flex cursor-pointer items-center gap-2.5 text-xs text-slate-400 select-none">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={aiEnabled}
+              onChange={(e) => setAiEnabled(e.target.checked)}
+              className="peer sr-only"
+            />
+            <span
+              className="relative h-5 w-9 rounded-full bg-slate-700 transition-colors peer-checked:bg-indigo-500 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-indigo-400 after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
+              aria-hidden
+            />
+            AI layouts with Groq
+            <span className="text-slate-600">· rule-based router when off or if the AI fails</span>
+          </label>
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-6xl px-4 pb-10">
+      <main
+        className={`relative mx-auto max-w-6xl px-4 pb-10 transition-opacity duration-300 ${pending ? 'opacity-50' : ''}`}
+        aria-busy={!!pending}
+      >
         {/* popLayout: the old dashboard fades out of flow while the new one builds in place */}
         <AnimatePresence mode="popLayout">
           <motion.section key={id} exit={{ opacity: 0, transition: { duration: 0.15 } }}>
@@ -95,9 +140,25 @@ export default function App() {
               transition={{ duration: 0.4, ease: EASE_OUT }}
             >
               <p className="mb-1 text-sm text-slate-500">{current.question}</p>
-              <h2 className="mb-6 text-xl font-medium tracking-tight text-pretty text-slate-50 sm:text-2xl">
+              <h2 className="text-xl font-medium tracking-tight text-pretty text-slate-50 sm:text-2xl">
                 {current.summary}
               </h2>
+              <p className="mt-2 mb-6 flex items-center gap-2 text-xs text-slate-500">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${built.source === 'ai' ? 'bg-indigo-400' : 'bg-slate-500'}`}
+                  aria-hidden
+                />
+                {built.source === 'ai' ? (
+                  <>Layout designed by Groq · {built.model}</>
+                ) : (
+                  <>
+                    Layout by the rule-based router
+                    {built.fallbackReason && (
+                      <span className="text-slate-600">(AI fallback: {built.fallbackReason})</span>
+                    )}
+                  </>
+                )}
+              </p>
             </motion.div>
             <BlockRenderer blocks={current.blocks} />
           </motion.section>

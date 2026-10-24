@@ -11,7 +11,7 @@ export function Card({
   children: ReactNode
 }) {
   return (
-    <section className={`h-full rounded-2xl border p-5 ${className}`}>
+    <section className={`@container h-full rounded-2xl border p-5 ${className}`}>
       <h3 className="mb-3 text-sm font-medium text-slate-400">{title}</h3>
       {children}
     </section>

@@ -1,5 +1,6 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  # Stretch (Sunday 11:00): Groq calls go through a function so the key never ships to the browser.
-  # functions = "netlify/functions"
+  # Groq calls go through a function so the key never ships to the browser.
+  # Set GROQ_API_KEY (and optionally GROQ_MODEL) in the site's environment variables.
+  functions = "netlify/functions"

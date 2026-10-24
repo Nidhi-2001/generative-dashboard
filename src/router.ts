@@ -150,7 +150,13 @@ function compareBuild(categories: SpendCategory[]): ReturnType<Intent['build']> 
   // Fills the third column when exactly two categories are compared.
   const gap: Blocks =
     categories.length === 2
-      ? [{ type: 'insight', title: 'Gap', text: `${titleCase(hi.c)} ran ${currency((hi.total - lo.total) / MONTHS.length)} a month higher on average.` }]
+      ? [
+          {
+            type: 'insight',
+            title: 'Monthly average',
+            text: `${titleCase(hi.c)} averaged ${currency(hi.total / MONTHS.length)} a month, ${lo.c} ${currency(lo.total / MONTHS.length)}.`,
+          },
+        ]
       : []
   return {
     summary: `Over six months you spent ${currency(hi.total)} on ${hi.c} and ${currency(lo.total)} on ${lo.c}.`,
