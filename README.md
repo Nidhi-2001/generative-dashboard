@@ -68,4 +68,8 @@ question ─▶ /api/answer (Netlify function) ─▶ Groq (JSON mode) ─▶ JS
 
 ## Deploy
 
-`netlify.toml` builds `dist/`. For the Groq stretch, put the API call in `netlify/functions/` so the key never ships to the browser.
+`netlify.toml` builds `dist/` and deploys `netlify/functions/`. The Groq call runs in that function, so the key never reaches the browser.
+
+## What I'd do next
+
+With real data, the first change is moving the data layer to the server. Sources and metrics would become typed queries against a real transaction store (Pocket's Supabase tables are the obvious first one), and the facts digest would be computed per user. The model would still see only aggregates, never raw transactions, which keeps both privacy and the grounding check intact. Real data also brings problems a seeded dataset hides: inconsistent merchant names, miscategorized charges, partial months, multiple currencies. Each of those needs handling before the numbers are worth trusting. On the LLM side, I'd replace the fixed list of sources with a small query language the model can compose (filter, group by, time range), so it can answer questions I didn't anticipate while still never writing a number into the layout. I'd also have insights cite facts by reference instead of as free text, which makes grounding a structural guarantee rather than a regex check. Then I'd build an eval set of a few hundred real questions, tracking how often answers pass validation, how often grounding rejects them, how long they take, and whether the layout fits the question. Those numbers, not demo impressions, would decide when to switch to schema-constrained decoding, stream blocks in as they arrive, or let follow-up questions edit the current dashboard instead of rebuilding it.
