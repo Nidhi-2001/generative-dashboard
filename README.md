@@ -11,6 +11,7 @@ npm install
 npm run dev          # router only: /api/answer doesn't exist under Vite, so the app falls back
 npx netlify dev      # with the AI path: put GROQ_API_KEY=... in .env first
 npm test             # router, grounding, validation, the Groq call (mocked) and the endpoint
+npm run eval:live    # asks the deployed /api/answer 15 questions; reports accepted / fallback / layout
 ```
 
 To enable AI layouts on Netlify, set `GROQ_API_KEY` under **Project configuration → Environment variables**. The default model is `openai/gpt-oss-120b`; set `GROQ_MODEL` to use a different one.

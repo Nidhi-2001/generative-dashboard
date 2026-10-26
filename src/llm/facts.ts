@@ -2,12 +2,23 @@
 // with a number must come from here (see grounding.ts), so the digest carries the
 // derived values a sentence would naturally use: shares, changes, averages.
 import * as agg from '../data/aggregates'
-import { MONTHS, type SpendCategory } from '../data/generate'
+import { MONTHS, transactions, type SpendCategory } from '../data/generate'
 
 const CATEGORIES: SpendCategory[] = ['housing', 'groceries', 'dining', 'transport', 'subscriptions']
 const round = (n: number, dp = 2) => Math.round(n * 10 ** dp) / 10 ** dp
 const pct = (n: number) => round(n * 100, 1)
 const change = (from: number, to: number) => (from === 0 ? 0 : pct((to - from) / from))
+
+/** Six-month total per merchant, grouped by category: tells the model that Uber is transport, and how much. */
+function merchantTotalsByCategory() {
+  const out = Object.fromEntries(CATEGORIES.map((c) => [c, {} as Record<string, number>]))
+  for (const t of transactions) {
+    if (t.category === 'income') continue
+    const m = out[t.category]
+    m[t.merchant] = round((m[t.merchant] ?? 0) + t.amount)
+  }
+  return out
+}
 
 export function buildFacts() {
   const latest = agg.LATEST_MONTH
@@ -60,6 +71,7 @@ export function buildFacts() {
       .topExpenses(20, latest, true)
       .filter((t) => t.recurring && t.category !== 'subscriptions')
       .map(({ merchant, category, amount }) => ({ merchant, category, amount })),
+    merchantTotalsSixMonths: merchantTotalsByCategory(),
     topOneOffExpenses: agg
       .topExpenses(8)
       .map(({ date, merchant, category, amount }) => ({ date, merchant, category, amount })),
