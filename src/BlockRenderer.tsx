@@ -33,13 +33,31 @@ function renderBlock(block: Block) {
   }
 }
 
+/** Row index of each block on the 3-column grid, which places blocks in order and wraps when a row is full. */
+function gridRows(blocks: Block[]) {
+  let row = 0
+  let used = 0
+  return blocks.map((b) => {
+    if (used + b.span > 3) {
+      row++
+      used = 0
+    }
+    used += b.span
+    return row
+  })
+}
+
 export function BlockRenderer({ blocks }: { blocks: Block[] }) {
+  const rows = gridRows(blocks)
+  // A stat sharing a row with a taller chart keeps its own height instead of
+  // stretching into an empty box; a row of stats stays evenly sized.
+  const mixedRows = new Set(rows.filter((_, i) => blocks[i].type !== 'stat'))
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       {blocks.map((block, i) => (
         <motion.div
           key={`${block.type}-${i}`}
-          className={SPAN[block.span]}
+          className={`${SPAN[block.span]} ${block.type === 'stat' && mixedRows.has(rows[i]) ? 'md:self-start' : ''}`}
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.5, delay: blockDelay(i), ease: EASE_OUT }}
