@@ -51,7 +51,8 @@ question ─▶ /api/answer (Netlify function) ─▶ Groq (JSON mode) ─▶ JS
 - **The prompt is generated, not hand-written.** It's built from `answerJsonSchema()`, a digest of facts computed from the data (`src/llm/facts.ts`), and two example answers from the router. All three come from code, so the prompt can't drift out of sync with what the app accepts.
 - **Blocks can't carry numbers**, so the model chooses the layout and the app fills in the figures.
 - **Prose is checked against the facts.** Any dollar amount, percentage or large number in the summary, a title or an insight must match a value in the facts digest, or in per-question facts such as the math for "can I afford $X". One unmatched figure rejects the whole answer (`src/llm/grounding.ts`). As a test, every router answer must pass the same check, because those answers are also the prompt's examples.
-- **It fails safe.** Every failure ends with the router answering, and the page labels which path built each dashboard and why it fell back. The API key stays on the server, the first page load makes no AI call, and answers are cached on warm function instances.
+- **It fails safe.** Every failure ends with the router answering, and the page labels which path built each dashboard and why it fell back. The API key stays on the server and the first page load makes no AI call.
+- **It fits a free-tier token budget.** The prompt carries the schema as compact, generated TypeScript-like types instead of raw JSON Schema, which halved the prompt to about 2,400 tokens. Good answers are cached in Netlify Blobs, keyed by a hash of the prompt and model, so repeat questions cost nothing and a prompt change invalidates old answers. A brief Groq rate limit gets one short retry; a longer one falls back with the wait time shown.
 
 ## Example answer
 

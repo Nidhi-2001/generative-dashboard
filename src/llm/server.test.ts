@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parse, route } from '../router'
-import type { AnswerInput } from '../schema'
+import { Answer, type AnswerInput } from '../schema'
 import { buildFacts, buildQuestionFacts } from './facts'
 import { handleAnswerRequest } from './endpoint'
 import { findUngroundedNumber } from './grounding'
@@ -93,10 +93,27 @@ describe('generateAnswer', () => {
     expect(body.messages[1].content).toContain('QUESTION FACTS')
   })
 
-  it('reports HTTP errors and network failures instead of throwing', async () => {
-    expect(await generateAnswer('q', { apiKey: 'k', fetch: groqReply({}, 429) })).toEqual({
+  it('retries once after a short rate-limit wait, and explains a long one', async () => {
+    const limited = (after: string) => new Response('{}', { status: 429, headers: { 'retry-after': after } })
+    const ok = await groqReply(route('Compare dining vs groceries').answer)()
+    const brief = vi.fn().mockResolvedValueOnce(limited('0.01')).mockResolvedValueOnce(ok)
+    expect(await generateAnswer('Compare dining vs groceries', { apiKey: 'k', fetch: brief })).toMatchObject({
+      ok: true,
+    })
+    expect(brief).toHaveBeenCalledTimes(2)
+
+    const long = vi.fn().mockResolvedValue(limited('30'))
+    expect(await generateAnswer('q', { apiKey: 'k', fetch: long })).toEqual({
       ok: false,
-      reason: 'Groq returned HTTP 429',
+      reason: 'Groq rate limit reached, try again in 30s',
+    })
+    expect(long).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports HTTP errors and network failures instead of throwing', async () => {
+    expect(await generateAnswer('q', { apiKey: 'k', fetch: groqReply({}, 500) })).toEqual({
+      ok: false,
+      reason: 'Groq returned HTTP 500',
     })
     const down = vi.fn().mockRejectedValue(new TypeError('fetch failed'))
     expect(await generateAnswer('q', { apiKey: 'k', fetch: down })).toEqual({
@@ -113,6 +130,40 @@ describe('/api/answer', () => {
   it('says so when the key is missing, so the client can fall back', async () => {
     const res = await post({ question: 'hi' }, { GROQ_API_KEY: '' })
     expect(await res.json()).toEqual({ ok: false, reason: 'AI is not configured on this deploy' })
+  })
+
+  it('serves cached answers without calling Groq', async () => {
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    const cached = { ok: true, model: 'm', answer: Answer.parse(route('Compare dining vs groceries').answer) }
+    const cache = { get: vi.fn().mockResolvedValue(cached), set: vi.fn() }
+    const res = await handleAnswerRequest(
+      new Request('http://x/api/answer', {
+        method: 'POST',
+        body: JSON.stringify({ question: 'Dining VS groceries?' }),
+      }),
+      { GROQ_API_KEY: 'k' },
+      cache,
+    )
+    expect(await res.json()).toMatchObject({ ok: true, answer: { question: 'Dining VS groceries?' } })
+    expect(fetch).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('keeps answering when the cache is down, and stores the new answer', async () => {
+    vi.stubGlobal('fetch', groqReply(route("What's my savings rate?").answer))
+    const cache = { get: vi.fn().mockRejectedValue(new Error('blobs down')), set: vi.fn().mockResolvedValue(undefined) }
+    const res = await handleAnswerRequest(
+      new Request('http://x/api/answer', {
+        method: 'POST',
+        body: JSON.stringify({ question: "What's my savings rate?" }),
+      }),
+      { GROQ_API_KEY: 'k' },
+      cache,
+    )
+    expect(await res.json()).toMatchObject({ ok: true })
+    expect(cache.set).toHaveBeenCalledOnce()
+    vi.unstubAllGlobals()
   })
 
   it('validates the request', async () => {

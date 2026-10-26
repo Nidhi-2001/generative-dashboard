@@ -30,10 +30,7 @@ export function buildFacts() {
       ),
     })),
     latestMonth: {
-      month: latest,
-      sharePctByCategory: Object.fromEntries(
-        CATEGORIES.map((c) => [c, pct(agg.categorySpend(c, latest) / latestSpend)]),
-      ),
+      month: latest, // shares for it are in months[]
       changePctVsPreviousMonth: {
         totalSpend: change(agg.totalSpend(prev), latestSpend),
         savingsRatePoints: round(pct(agg.savingsRate(latest)) - pct(agg.savingsRate(prev)), 1),

@@ -9,8 +9,8 @@
 import { z } from 'zod'
 import { MONTHS } from './data/generate'
 
-const Month = z.enum(MONTHS).describe('Calendar month, YYYY-MM. Omit for the latest month.')
-const SpendCategory = z.enum(['housing', 'groceries', 'dining', 'transport', 'subscriptions'])
+export const Month = z.enum(MONTHS).describe('Calendar month, YYYY-MM. Omit for the latest month.')
+export const SpendCategory = z.enum(['housing', 'groceries', 'dining', 'transport', 'subscriptions'])
 
 /** Tabular data a chart or table can read. */
 export const Source = z.discriminatedUnion('kind', [

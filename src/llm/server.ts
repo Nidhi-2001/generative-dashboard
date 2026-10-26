@@ -23,6 +23,14 @@ interface Options {
 const facts = buildFacts()
 const systemPrompt = buildSystemPrompt(facts)
 
+export async function shortHash(text: string) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return [...new Uint8Array(bytes).slice(0, 8)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Identifies the prompt + model a cached answer was made with; any change invalidates it. */
+export const cacheVersion = (model = DEFAULT_MODEL) => shortHash(`${model}\n${systemPrompt}`)
+
 /** Parse, schema-check and grounding-check raw model output. */
 export function validateModelOutput(content: string, question: string, model: string): Generated {
   let json: unknown
@@ -46,25 +54,39 @@ export async function generateAnswer(question: string, opts: Options): Promise<G
   const questionFacts = buildQuestionFacts(parse(question).amount)
   const doFetch = opts.fetch ?? fetch
   try {
-    const res = await doFetch(GROQ_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${opts.apiKey}`, 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 12_000),
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-        // gpt-oss models reason before answering; low effort keeps latency demo-friendly
-        ...(model.startsWith('openai/gpt-oss') && { reasoning_effort: 'low' }),
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: questionFacts ? `${question}\n\nQUESTION FACTS:\n${JSON.stringify(questionFacts)}` : question,
-          },
-        ],
-      }),
-    })
+    const call = () =>
+      doFetch(GROQ_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${opts.apiKey}`, 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 12_000),
+        body: JSON.stringify({
+          model,
+          temperature: 0.2,
+          response_format: { type: 'json_object' },
+          // gpt-oss models reason before answering; low effort keeps latency demo-friendly
+          ...(model.startsWith('openai/gpt-oss') && { reasoning_effort: 'low' }),
+          messages: [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              content: questionFacts ? `${question}\n\nQUESTION FACTS:\n${JSON.stringify(questionFacts)}` : question,
+            },
+          ],
+        }),
+      })
+    let res = await call()
+    if (res.status === 429) {
+      // Free-tier limits are per minute and refill continuously: a short wait often clears it.
+      const wait = Number(res.headers.get('retry-after'))
+      if (wait > 0 && wait <= 5) {
+        await new Promise((resolve) => setTimeout(resolve, wait * 1000))
+        res = await call()
+      }
+      if (res.status === 429) {
+        const again = Number(res.headers.get('retry-after'))
+        return { ok: false, reason: `Groq rate limit reached${again > 0 ? `, try again in ${Math.ceil(again)}s` : ''}` }
+      }
+    }
     if (!res.ok) return { ok: false, reason: `Groq returned HTTP ${res.status}` }
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] }
     const content = data.choices?.[0]?.message?.content
